@@ -10,7 +10,7 @@ import nltk
 from nltk import ngrams
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-from collections import Counter 
+from collections import Counter
 
 # loading the dataset
 @st.cache_data
@@ -38,13 +38,29 @@ all_words = " ".join(df['cleaned_text'].astype(str)).split()
 filtered_words = [w for w in all_words if w not in all_stopwords]
 word_freq = Counter(filtered_words)
 
+################################################
+
+# page configuration
 st.set_page_config(
   page_title = "Reddit Sentiment Analysis",
-  layout = "wide"
+  layout = "wide",
+  initial_sidebar_state = "collapsed"
 )
 
-st.title("Title of the Project")
-st.markdown("Small deep down about the project")
+# Project tilte
+logo_col, title_col = st.columns([0.1, 0.9])
+with logo_col:
+  st.image("../dashboard/images/Reddit_Icon_FullColor.svg", width = 60)
+
+with title_col:
+  st.markdown("<div style='display: flex; align-items: center; height: 60px;'><h1 style = 'margin: 0; padding: 0;'>Reddit Sentiment Analysis: The Tech Community's Voice</h1></div>", unsafe_allow_html=True)
+
+st.markdown("""
+      **Analyzing public sentiment on r/technology** to uncover emotional trends and key topics in discussions 
+      about **AI, Privacy, and Political** issues. This dashboard quantifies complex text into actionable insights.
+      """)
+
+st.markdown("---")
 
 ########################################################
 
@@ -127,20 +143,102 @@ pos_count = df[df['sentiment_category'] == 'Positive'].shape[0]
 neg_count = df[df['sentiment_category'] == 'Negative'].shape[0]
 neu_count = df[df['sentiment_category'] == 'Neutral'].shape[0]
 
+# Calculating the percentage to show the difference between category's average score and neutral score
+pos_dev_percent = (pos_avg / 1.0) * 100
+neg_dev_percent = (abs(neg_avg) / 1.0) * 100
+neu_dev_percent = (neu_avg / 1.0) * 100
+
+
+# creating micro chart function for the metrics visuals
+def create_percentage_gauge(value, color, max_value):
+  percent = (value / max_value) * 100
+
+  fig = go.Figure(go.Indicator(
+    mode = "gauge+number",
+    value = percent,
+    number = {
+      'valueformat': '.1f',
+      'suffix': "%",
+      'font': {'size': 24, 'color': color}
+    },
+    gauge = {
+      'axis': {'range': [None, 100], 'tickwidth': 0, 'visible': False},
+      'bar': {'color': color, 'thickness': 0.8},
+      'bgcolor': "lightgray",
+      'borderwidth': 0,
+      'steps': [
+        {'range': [0, 100], 'color': 'lightgray'}
+      ],
+      'threshold': {
+        'line': {'color': color, 'width': 4},
+        'thickness': 0.75,
+        'value': percent
+      }
+    }
+  ))
+
+  fig.update_layout(
+    height = 150,
+    margin = dict(l = 10, r = 10, t = 10, b = 10)
+  )
+  return fig
+
+
 # dispalying the key metrics of average positive, negative and neutral
+total_posts = df.shape[0]
 col1, col2, col3 = st.columns(3, border = True)
 
 with col1:
-  st.metric(label = "Average Positive Score", value = f"{pos_avg:.2f}")
-  st.markdown(f"**Total Positive Posts:** **{pos_count:,}**")
+  text_col, chart_col = st.columns([1.5, 1])
+
+  with text_col:
+    st.metric(
+      label = "Average Positive Score",
+      value = f"{pos_avg:.2f}",
+      delta = f"{pos_dev_percent:.1f}% Deviation",
+      delta_color="normal"
+    )
+    st.markdown(f"**Total Positive Posts:** **{pos_count:,}**")
+  
+  with chart_col:
+    #st.caption(f"{round((pos_count / total_posts) * 100, 1)}% of all posts")
+    gauge_pos = create_percentage_gauge(pos_count, '#4CAF50', total_posts)
+    st.plotly_chart(gauge_pos, use_container_width = True, config = {'displayModeBar': False})
 
 with col2:
-  st.metric(label = "Average Negative Score", value = f"{neg_avg:.2f}")
-  st.markdown(f"**Total Negative Posts:** **{neg_count:,}**")
+  text_col, chart_col = st.columns([1.5, 1])
+
+  with text_col:
+    st.metric(
+      label = "Average Negative Score",
+      value = f"{neg_avg:.2f}",
+      delta = f"{neg_dev_percent * -1:.1f}% Deviation",
+      delta_color = "normal"
+    )
+    st.markdown(f"**Total Negative Posts:** **{neg_count:,}**")
+
+  with chart_col:
+    #st.caption(f"{round((neg_count / total_posts) * 100, 1)}% of all posts")
+    gauge_neg = create_percentage_gauge(neg_count, '#F44336', total_posts)
+    st.plotly_chart(gauge_neg, use_container_width = True, config = {'displayModeBar': False})
 
 with col3:
-  st.metric(label = "Average Neutral Score", value = f"{neu_avg:.2f}")
-  st.markdown(f"**Total Neutral Posts:** **{neu_count:,}**")
+  text_col, chart_col = st.columns([1.5, 1])
+
+  with text_col:
+    st.metric(
+      label = "Average Neutral Score",
+      value = f"{neu_avg:.2f}",
+      delta = f"{neu_dev_percent:.1f}% Deviation",
+      delta_color = "off"
+    )
+    st.markdown(f"**Total Neutral Posts:** **{neu_count:,}**")
+
+  with chart_col:
+    #st.caption(f"{round((neu_count / total_posts) * 100, 1)}% of all posts")
+    gauge_neu = create_percentage_gauge(neu_count, '#FFC107', total_posts)
+    st.plotly_chart(gauge_neu, use_container_width = True, config = {'displayModeBar': False})
+
 
 # creating tabs to explore sentiment analysis
 tab1, tab2, tab3 = st.tabs([
@@ -157,7 +255,7 @@ with tab1:
 
   # Adding slider to choose the number of words to display
   with select_col:
-    st.subheader("")
+    st.subheader("Configuration")
     top_words_selection = st.select_slider(
       "**Select the number of Top Words:**",
       options = [
@@ -169,7 +267,7 @@ with tab1:
         "50",
         "100"
       ],
-      value = "30"
+      value = "25"
     )
 
     # converting the selected string to an interger
@@ -178,31 +276,25 @@ with tab1:
     # adding a checkbox to switch between single words or two phrased words
     use_bigrams = st.checkbox("Show Two Word Phrases", value = False)
 
-    st.subheader("Raw Frequency Data")
-    st.caption("Shows the exact count for the selected words/pharses")
-
+    # data calculation
     if use_bigrams:
       bigrams = ngrams(filtered_words, 2)
       bigrams_freq = Counter(bigrams)
-      bigram_dict = {"_".join(k): v for k, v in bigrams_freq.most_common(n_num)}
-      st.dataframe(pd.Series(bigram_dict).head(n_num), use_container_width = True)
+      final_word_dict = {"_".join(k): v for k, v in bigrams_freq.most_common(n_num)}
     else:
-      st.dataframe(pd.Series(word_freq).head(n_num), use_container_width = True)
+      final_word_dict = dict(word_freq.most_common(n_num))
 
+  # display the raw frequency expander
+  with select_col:
+    st.markdown("---")
+    with st.expander("View Raw Frequency Table"):
+      st.caption("Shows the exact count for the top {n_num} selected words/phrases")
+      st.dataframe(pd.Series(final_word_dict), use_container_width = True)
+
+  # Word Cloud Display
   with word_display_col:
-    st.subheader(f"Top {n_num} Most Used Words")
-
-    # including bigrams to calculate word frequency
-    if use_bigrams:
-      # same code used in EDA
-      bigrams = ngrams(filtered_words, 2)
-      bigrams_freq = Counter(bigrams)
-
-      # combining the bigram words into a single string
-      bigram_dict = {"_".join(k): v for k, v in bigrams_freq.most_common(n_num)}
-      wordcloud = WordCloud(width = 800, height = 400, background_color = "white").generate_from_frequencies(bigram_dict)
-    else:
-      wordcloud = WordCloud(width = 800, height = 400, background_color = "white").generate_from_frequencies(dict(word_freq.most_common(n_num)))
+    st.subheader(f"Word Cloud of Top {n_num} Words")
+    wordcloud = WordCloud(width = 800, height = 500, background_color = "white").generate_from_frequencies(final_word_dict)
 
     # displaying the Word Cloud
     fig, ax = plt.subplots(figsize = (10, 5))
@@ -230,47 +322,83 @@ with tab2:
     horizontal = True
   )
 
+  st.markdown("---")
   st.header(f"Emotion Distribution for: {topic_selection}")
+  st.caption("Each bar chart shows the most frequent words that triggered a specific emotion in the posts")
 
   # emotion distribution chart
   emotion_df_plot = get_emotion_distribution(df, topic_selection)
 
   if not emotion_df_plot.empty:
-    fig_emotion = px.bar(
-      emotion_df_plot,
-      x = 'Percentage',
-      y = 'Emotion',
-      orientation = 'h',
-      text = 'Percentage',
-      color = 'Emotion',
-      color_discrete_sequence = px.colors.qualitative.Bold,
-      title = f"Percentage of Emotional Words in '{topic_selection}' posts"
-    )
+    emotions_to_display = emotion_columns
 
-    fig_emotion.update_traces(texttemplate = '%{text:.1f}%', textposition = 'outside')
-    fig_emotion.update_layout(uniformtext_minsize = 8, uniformtext_mode = 'hide', yaxis = {'categoryorder':'total ascending'})
-    st.plotly_chart(fig_emotion, use_container_width = True)
+    columns_per_row = 4
 
-    st.markdown("---")
-    st.header("Top Contextual Words Driving Key Emotions")
+    for i in range(0, len(emotions_to_display), columns_per_row):
+      emotion_cols = st.columns(columns_per_row)
 
-    # top 4 most prominent emotions in the selected topic for display
-    top_emotions = emotion_df_plot['Emotion'].head(4).tolist()
-    emotion_cols = st.columns(len(top_emotions)) # this will display the top most used words
-    
-    for i, emotion in enumerate(top_emotions):
-      top_words_dict = get_top_emotion_words(df, topic_selection, emotion, num = 7)
+      # iterating through the emotions
+      for j, emotion in enumerate(emotions_to_display[i:i + columns_per_row]):
+        with emotion_cols[j]:
+          top_words_dict = get_top_emotion_words(df, topic_selection, emotion, num = 7)
 
-      with emotion_cols[i]:
-        st.subheader(f"{emotion.title()}")
+          #customizing the colors
+          if emotion in ['negative', 'anger', 'disgust', 'fear', 'sadness']:
+            bar_color = '#F44336'
+          elif emotion in ['positive', 'joy', 'trust', 'anticipation', 'surprise']:
+            bar_color = '#4CAF50'
+          else:
+            bar_color = '#FFC107'
+          
+          if top_words_dict:
+            df_words = pd.DataFrame(
+              list(top_words_dict.items()),
+              columns = ['Word', 'Count']
+            )
 
-        if top_words_dict:
-          word_list_markdown = ""
-          for word, count in top_words_dict.items():
-            word_list_markdown += f"- **{word.upper()}** ({count:,})\n"
-          st.markdown(word_list_markdown)
-        else:
-          st.markdown("*No significant words found for this emotion.*")
+            fig_word_bar = px.bar(
+              df_words.sort_values('Count', ascending = True),
+              x = 'Count',
+              y = 'Word',
+              orientation = 'h',
+              text = 'Count',
+              color_discrete_sequence = [bar_color]
+            )
+
+            fig_word_bar.update_traces(
+              marker_line_width = 0,
+              texttemplate = '%{text:,}',
+              textposition = 'outside'
+            )
+
+            fig_word_bar.update_layout(
+              title = f"{emotion.title()}",
+              title_font_size = 16,
+              height = 350,
+              margin = dict(l = 10, r = 40, t = 50, b = 10),
+              plot_bgcolor = 'rgba(240, 240, 240, 0.1)',
+              paper_bgcolor = 'rgba(0, 0, 0, 0)',
+              # xaxis_title = None,
+              # yaxis_title = None,
+              xaxis = dict(
+                showgrid = True,
+                showline = True,
+                linecolor = '#888888',
+                ticks = 'outside',
+                ticklen = 5,
+                range = [0, df_words['Count'].max() * 1.2]
+              ),
+              yaxis = dict(
+                showgrid = False,
+                showline = False
+              )
+            )
+
+            st.plotly_chart(fig_word_bar, use_container_width = True, config = {'displayModeBar': False})
+          
+          else:
+            st.markdown(f"**{emotion.title()}**")
+            st.markdown(f"**No words found for {emotion}**")
   else:
     st.info(f"No emotional words found for the topic: {topic_selection}")
 
@@ -280,6 +408,25 @@ with tab2:
 # Eg: slecting 'Negative' comments related to 'Political' that express 'Anger'
 with tab3:
   st.subheader("Filter and view individual 'r/technology' subreddit comments to understand the context of the sentiment")
+
+  sentiment_map = {
+    'Positive': '😀 Positive',
+    'Negative': '😡 Negative',
+    'Neutral': '😐 Neutral'
+  }
+
+  emotion_display_map = {
+    'positive': '🟢 Positive',
+    'negative': '🔴 Negative',
+    'trust': '🤝 Trust',
+    'fear': '😨 Fear',
+    'joy': '😊 Joy',
+    'anger': '😡 Anger',
+    'surprise': '😲 Surprise',
+    'disgust': '🤢 Disgust',
+    'sadness': '😢 Sadness',
+    'anticipation': '⏳ Anticipation'
+  }
 
   filter_col1, filter_col2, filter_col3 = st.columns(3)
 
@@ -325,22 +472,53 @@ with tab3:
       # this is for the specific emotion column > 0
       emotion_col_name = emotion_filter.lower()
       df_filtered = df_filtered[df_filtered[emotion_col_name] > 0]
-    
-  # Selecting only the relevant columns to display
-  columns_to_show = [
-    'cleaned_text',
-    'topic',
-    'sentiment_category',
-    'sentiment_score'
-  ]
+
+  df_display = df_filtered.copy()
+
+  if not df_display.empty:
+    df_display['sentiment_category'] = df_display['sentiment_category'].map(sentiment_map)
+
+    if emotion_filter != 'All Emotions':
+      if emotion_filter != 'No Emotion':
+        display_emotion = emotion_filter.lower()
+        df_display['filtered_emotion'] = df_display[display_emotion].apply(
+          lambda x: emotion_display_map[display_emotion] if x > 0 else '-'
+        )
+
+        # Selecting only the relevant columns to display
+        columns_to_show = [
+          'cleaned_text',
+          'topic',
+          'sentiment_category',
+          'filtered_emotion',
+          'sentiment_score'
+        ]
+      else:
+        columns_to_show = [
+          'cleaned_text',
+          'topic',
+          'sentiment_category',
+          'snetiment_score'
+        ]
+    else:
+      columns_to_show = [
+        'cleaned_text',
+        'topic',
+        'sentiment_category',
+        'sentiment_score'
+      ]
+  else:
+    columns_to_show = []
+  
 
   st.info(f"Displaying **{df_filtered.shape[0]:,}** posts matching your criteria")
 
   if not df_filtered.empty:
     st.dataframe(
-      df_filtered[columns_to_show].rename(
+      df_display[columns_to_show].rename(
         columns = {'cleaned_text': 'Comment Text',
                    'sentiment_category': 'Overall Sentiment',
+                   'sentiment_score': 'VADER Score',
                    'sentiment_score': 'VADER Score'}
       ),
       use_container_width = True,
