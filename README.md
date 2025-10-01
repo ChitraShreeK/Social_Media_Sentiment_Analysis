@@ -37,7 +37,7 @@ This analysis was executed through a robust NLP pipeline designed for speed and 
 
 ### Dashboard Preview
 
-![Dashboard Main](dashboard\dashboard_images\01_dashboard.png)
+![Dashboard Main](../dashboard/dashboard_images/01_dashboard.png)
 *Word Cloud View*
 
 ---
