@@ -15,7 +15,7 @@ from collections import Counter
 # loading the dataset
 @st.cache_data
 def load_data():
-  data = pd.read_csv("../data/sentiment_analysis_dataset.csv")
+  data = pd.read_csv("data/sentiment_analysis_dataset.csv")
   return data
 
 df = load_data()
@@ -525,4 +525,5 @@ with tab3:
       height = 600
     )
   else:
+
     st.warning("No posts found for the selected combination of filters")
