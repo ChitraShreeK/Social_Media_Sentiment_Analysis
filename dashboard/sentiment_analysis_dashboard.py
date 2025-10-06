@@ -12,6 +12,11 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from collections import Counter
 
+try:
+  nltk.data.find('corpora/stopwords')
+except nltk.downloader.DownloadError:
+  nltk.download('stopwords')
+
 # loading the dataset
 @st.cache_data
 def load_data():
@@ -527,3 +532,4 @@ with tab3:
   else:
 
     st.warning("No posts found for the selected combination of filters")
+
