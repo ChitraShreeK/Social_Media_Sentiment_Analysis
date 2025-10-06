@@ -14,8 +14,11 @@ from collections import Counter
 
 try:
   nltk.data.find('corpora/stopwords')
-except LookupError:
-  nltk.download('stopwords')
+except ImportError:
+  try:
+    nltk.data.find('corpora/stopwords')
+  except LookupError:
+    nltk.download('stopwords')
 
 # loading the dataset
 @st.cache_data
@@ -532,6 +535,7 @@ with tab3:
   else:
 
     st.warning("No posts found for the selected combination of filters")
+
 
 
 
