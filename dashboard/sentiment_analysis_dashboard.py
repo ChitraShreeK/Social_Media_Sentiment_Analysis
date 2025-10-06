@@ -58,7 +58,7 @@ st.set_page_config(
 # Project tilte
 logo_col, title_col = st.columns([0.1, 0.9])
 with logo_col:
-  st.image("../dashboard/images/Reddit_Icon_FullColor.svg", width = 60)
+  st.image("dashboard/images/Reddit_Icon_FullColor.svg", width = 60)
 
 with title_col:
   st.markdown("<div style='display: flex; align-items: center; height: 60px;'><h1 style = 'margin: 0; padding: 0;'>Reddit Sentiment Analysis: The Tech Community's Voice</h1></div>", unsafe_allow_html=True)
@@ -535,6 +535,7 @@ with tab3:
   else:
 
     st.warning("No posts found for the selected combination of filters")
+
 
 
 
